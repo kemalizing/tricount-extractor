@@ -48,7 +48,7 @@ class Registry:
             "allocations": self._to_allocations_dataframe(),
             "attachments": self._to_attachments_dataframe(),
             "balances": self._to_balance_dataframe(),
-            "split_view": self._to_split_view_dataframe(),
+            "transaction_ledger": self._to_transaction_ledger_dataframe(),
         }
 
     def _to_entries_dataframe(self) -> pd.DataFrame:
@@ -81,18 +81,18 @@ class Registry:
             return pd.DataFrame(columns=["entry_id", "url"])
         return pd.DataFrame(rows)
 
-    def _to_split_view_dataframe(self) -> pd.DataFrame:
+    def _to_transaction_ledger_dataframe(self) -> pd.DataFrame:
         member_names = sorted([m.display_name for m in self.members])
         rows = []
 
         for e in self.entries:
             row = {
-                "Date": e.date.strftime("%Y-%m-%d"),
-                "Description": e.description,
-                "Category": e.category,
-                "Type": e.transaction_type_label,
-                "Cost": e.amount.value if not e.is_reimbursement else 0.0,
-                "Currency": e.amount.currency,
+                "date": e.date,
+                "description": e.description,
+                "category": e.category,
+                "type": e.transaction_type_label,
+                "cost": e.amount.value if not e.is_reimbursement else 0.0,
+                "currency": e.amount.currency,
             }
 
             allocation_map = {a.member_name: a.amount.value for a in e.allocations}
@@ -104,7 +104,9 @@ class Registry:
             rows.append(row)
 
         if not rows:
-            columns = ["Date", "Description", "Category", "Type", "Cost", "Currency"] + member_names
+            columns = ["date", "description", "category", "type", "cost", "currency"] + member_names
             return pd.DataFrame(columns=columns)
 
-        return pd.DataFrame(rows).sort_values("Date").reset_index(drop=True)
+        df = pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
+        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+        return df
